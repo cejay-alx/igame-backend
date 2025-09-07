@@ -46,7 +46,7 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
 		path: '/',
 	});
 
-	res.status(StatusCodes.OK).json({ user: userData, error: null });
+	res.status(StatusCodes.OK).json({ user: { username: userData?.username, total_wins: userData?.total_wins, total_losses: userData?.total_losses }, error: null });
 	try {
 	} catch (error: any) {}
 };
@@ -79,4 +79,12 @@ export const handleLogout = async (req: AuthenticatedRequest, res: Response): Pr
 	});
 
 	res.status(StatusCodes.OK).json({ message: `Logged out successfully` });
+};
+
+export const handleVerifyMe = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+	if (!req.user && typeof req.user !== 'string') {
+		res.status(StatusCodes.BAD_REQUEST).json({ user: null, error: 'Invalid user' });
+		return;
+	}
+	res.status(StatusCodes.OK).json({ user: req.user, error: null });
 };
