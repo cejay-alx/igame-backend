@@ -14,9 +14,15 @@ export interface SessionParticipantResponse {
 	error: { name: string; message: string; status?: string } | null;
 }
 
-export interface SessinPaticipantPayload {
+export interface ParticipantResponse {
+	participant: SessionParticipant | null;
+	error: { name: string; message: string; status?: string } | null;
+}
+
+export interface SessionPaticipantPayload {
 	user_id: string;
 	is_starter?: boolean;
 	chosen_number?: number;
 	is_winner?: boolean;
+	session_id: string;
 }

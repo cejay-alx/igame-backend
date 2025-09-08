@@ -6,6 +6,7 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 export interface AuthenticatedRequest extends Request {
 	user?: string;
 	user_id?: string;
+	joiContext?: any;
 }
 
 export const authorize = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {

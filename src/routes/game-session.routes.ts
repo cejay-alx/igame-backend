@@ -1,5 +1,6 @@
-import { createNewGames, getActiveGames } from '@/controllers/game-session';
+import { createNewGames, getActiveGames, joinGameSession, leaveGameSession, setUserNumber } from '@/controllers/game-session';
 import { authorize } from '@/middleware';
+import { manageGame, updateGame, validateRequestBody } from '@/middleware/validation';
 import { json, Router } from 'express';
 
 const router = Router();
@@ -11,5 +12,14 @@ router.get('/active', authorize, getActiveGames);
 
 // POST /api/v1/games/new-game - Create New Game
 router.post('/new-game', authorize, createNewGames);
+
+// POST /api/v1/games/set-number - Set User Number
+router.post('/set-number', authorize, validateRequestBody(updateGame), setUserNumber);
+
+// POST /api/v1/games/join-game - Join Game Session
+router.post('/join-game', authorize, validateRequestBody(manageGame), joinGameSession);
+
+// POST /api/v1/games/leave-game - Leave Game Session
+router.post('/leave-game', authorize, validateRequestBody(manageGame), leaveGameSession);
 
 export default router;
