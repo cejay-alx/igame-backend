@@ -1,7 +1,7 @@
-import logger from '@/config/logger';
 import { createAdminClient } from '@/config/supabase';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { UserResponse } from './user.type';
+import logger from '@/config/logger';
 
 const supabase: SupabaseClient | null = createAdminClient();
 

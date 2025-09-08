@@ -11,8 +11,8 @@ if (!supabase) {
 	logger.error(errorMsg);
 }
 
-export const loginUser = async (input: LoginRequest): Promise<LoginResponse> => {
-	const { username, session_ends_in } = input;
+export const loginUser = async (payload: LoginRequest): Promise<LoginResponse> => {
+	const { username, session_ends_in } = payload;
 
 	if (!supabase) {
 		const errorMsg = 'Failed to create Supabase admin client for UsersService. Check environment variables (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).';
@@ -27,7 +27,7 @@ export const loginUser = async (input: LoginRequest): Promise<LoginResponse> => 
 			return { credentials: null, error: { status: error.hint, message: error.message, name: error.name } };
 		}
 
-		const accessToken = jwt.sign(input, process.env.ACCESS_TOKEN_SECRET!, { expiresIn: '15m' });
+		const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET!, { expiresIn: Number(process.env.MAX_AGE!) });
 
 		return { credentials: { username, accessToken }, error: null };
 	} catch (error: unknown) {

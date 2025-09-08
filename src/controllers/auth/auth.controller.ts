@@ -15,39 +15,40 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
 		return;
 	}
 
-	let { user } = await getUserByUsername(credentials.username);
-	if (!user) {
-		let { user } = await signUpUser(credentials.username);
-		userData = user;
-	} else {
-		userData = user;
-	}
-
-	const now = new Date();
-	if (userData?.session_ends_in) {
-		if (now <= new Date(userData?.session_ends_in)) {
-			res.status(StatusCodes.FORBIDDEN).json({ user: null, error: 'User has an active session' });
-		}
-	}
-
-	const maxAge = 3600000; // 1 hour in milliseconds
-	const sessionEndsIn = new Date(now.getTime() + maxAge);
-	const payload = { username: credentials.username, session_ends_in: sessionEndsIn };
-
-	const { credentials: loginData } = await loginUser(payload);
-
-	logger.info(`Setting accessToken cookie for user: ${credentials.username}`);
-
-	res.cookie('access_token', loginData?.accessToken, {
-		httpOnly: true,
-		secure: true,
-		sameSite: 'lax',
-		maxAge,
-		path: '/',
-	});
-
-	res.status(StatusCodes.OK).json({ user: { username: userData?.username, total_wins: userData?.total_wins, total_losses: userData?.total_losses }, error: null });
 	try {
+		let { user } = await getUserByUsername(credentials.username);
+		if (!user) {
+			let { user } = await signUpUser(credentials.username);
+			userData = user;
+		} else {
+			userData = user;
+		}
+
+		const now = new Date();
+		if (userData?.session_ends_in) {
+			if (now <= new Date(userData?.session_ends_in)) {
+				res.status(StatusCodes.FORBIDDEN).json({ user: null, error: 'User has an active session' });
+				return;
+			}
+		}
+
+		const maxAge = Number(process.env.MAX_AGE!); // 1 hour in milliseconds
+		const sessionEndsIn = new Date(now.getTime() + maxAge);
+		const payload = { username: credentials.username, session_ends_in: sessionEndsIn, id: userData!.id };
+
+		const { credentials: loginData } = await loginUser(payload);
+
+		logger.info(`Setting accessToken cookie for user: ${credentials.username}`);
+
+		res.cookie('igame_access_token', loginData?.accessToken, {
+			httpOnly: true,
+			secure: true,
+			sameSite: 'lax',
+			maxAge,
+			path: '/',
+		});
+
+		res.status(StatusCodes.OK).json({ user: { username: userData?.username, total_wins: userData?.total_wins, total_losses: userData?.total_losses }, error: null });
 	} catch (error: any) {}
 };
 
@@ -71,7 +72,7 @@ export const handleLogout = async (req: AuthenticatedRequest, res: Response): Pr
 		return;
 	}
 
-	res.clearCookie('access_token', {
+	res.clearCookie('igame_access_token', {
 		httpOnly: true,
 		secure: true,
 		sameSite: 'lax',

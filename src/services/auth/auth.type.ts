@@ -1,4 +1,5 @@
 export interface LoginRequest {
+	id: string;
 	username: string;
 	session_ends_in: Date;
 }
