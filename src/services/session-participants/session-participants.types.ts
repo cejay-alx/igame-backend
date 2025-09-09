@@ -1,3 +1,5 @@
+import { UserData } from '../user';
+
 export interface SessionParticipant {
 	id: string;
 	session_id: string;
@@ -7,6 +9,11 @@ export interface SessionParticipant {
 	joined_at: string;
 	is_starter: boolean;
 	updated_at: string;
+	user: {
+		total_wins?: number;
+		total_losses?: number;
+		username?: string;
+	} | null;
 }
 
 export interface SessionParticipantResponse {
@@ -19,10 +26,16 @@ export interface ParticipantResponse {
 	error: { name: string; message: string; status?: string } | null;
 }
 
+export interface ParticipantsResponse {
+	participants: SessionParticipant[] | null;
+	error: { name: string; message: string; status?: string } | null;
+}
+
 export interface SessionPaticipantPayload {
 	user_id: string;
 	is_starter?: boolean;
 	chosen_number?: number;
 	is_winner?: boolean;
 	session_id: string;
+	updated_at?: string;
 }

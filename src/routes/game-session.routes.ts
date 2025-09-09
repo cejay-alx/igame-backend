@@ -1,4 +1,4 @@
-import { createNewGames, getActiveGames, joinGameSession, leaveGameSession, setUserNumber } from '@/controllers/game-session';
+import { createNewGames, endGameSession, getActiveGames, getGamesByDate, getTopPlayers, joinGameSession, leaveGameSession, setUserNumber } from '@/controllers/game-session';
 import { authorize } from '@/middleware';
 import { manageGame, updateGame, validateRequestBody } from '@/middleware/validation';
 import { json, Router } from 'express';
@@ -21,5 +21,14 @@ router.post('/join-game', authorize, validateRequestBody(manageGame), joinGameSe
 
 // POST /api/v1/games/leave-game - Leave Game Session
 router.post('/leave-game', authorize, validateRequestBody(manageGame), leaveGameSession);
+
+// POST /api/v1/games/end-game - End Game Session
+router.post('/end-game', authorize, validateRequestBody(manageGame), endGameSession);
+
+// GET /api/v1/games/top-players - Get Top Players
+router.get('/top-players', authorize, getTopPlayers);
+
+// GET /api/v1/games/:date - Get Game History by Date
+router.get('/:date', authorize, getGamesByDate);
 
 export default router;

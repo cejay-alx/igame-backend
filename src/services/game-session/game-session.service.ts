@@ -37,7 +37,7 @@ export const activeGamesService = async (user_id: string): Promise<GameSessionRe
 
 		const { participant } = await getParticipantByUserIdService(user_id, game.id);
 
-		const { count } = await supabase.from('session_participants').select('*', { count: 'exact', head: true }).eq('session_id', game.id).single();
+		const { count } = await supabase.from('session_participants').select('*', { count: 'exact', head: true }).eq('session_id', game.id);
 
 		return { game, error: null, participant, count };
 	} catch (err: any) {

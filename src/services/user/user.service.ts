@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/config/supabase';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { UserResponse } from './user.type';
+import { UpdateUserPayload, UserResponse } from './user.type';
 import logger from '@/config/logger';
 
 const supabase: SupabaseClient | null = createAdminClient();
@@ -58,5 +58,27 @@ export const signUpUser = async (username: string): Promise<UserResponse> => {
 	} catch (err: any) {
 		logger.error(`Unexpected error in signUpUser service for user ${username}:`, err);
 		return { user: null, error: { name: 'UnexpectedError', message: err.message || 'An unexpected error occurred' } };
+	}
+};
+
+export const updateUserService = async (userId: string, updates: Partial<UpdateUserPayload>): Promise<UserResponse> => {
+	if (!supabase) {
+		const errorMsg = 'Failed to create Supabase admin client for UsersService. Check environment variables (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).';
+		logger.error(errorMsg);
+		return { error: { name: 'ClientInitializationError', message: 'Supabase admin client not initialized' }, user: null };
+	}
+
+	try {
+		const { data, error } = await supabase.from('users').update(updates).eq('id', userId).select().maybeSingle();
+
+		if (error) {
+			logger.error('Error updating user:', error);
+			return { user: null, error };
+		}
+
+		return { user: data, error: null };
+	} catch (error: any) {
+		logger.error(`Unexpected error in updateGameService service`, error);
+		return { user: null, error: { name: 'UnexpectedError', message: error.message || 'An unexpected error occurred' } };
 	}
 };

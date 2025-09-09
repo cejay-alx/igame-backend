@@ -3,7 +3,7 @@ import { createAdminClient } from '@/config/supabase';
 import { hasGameHasEnded } from '@/lib/helpers';
 import { AuthenticatedRequest } from '@/middleware';
 import { activeGamesService, getGameByIdService, newGameService, updateGameService } from '@/services/game-session';
-import { getParticipantByUserIdService, newParticipantService, updateParticipantService } from '@/services/session-participants';
+import { getAllParticipantsService, getParticipantByUserIdService, newParticipantService, updateParticipantService } from '@/services/session-participants';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
@@ -145,7 +145,7 @@ async function manageGameSession(req: AuthenticatedRequest, res: Response, type:
 		if (!supabase) {
 			const errorMsg = 'Failed to create Supabase admin client for UsersService. Check environment variables (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).';
 			logger.error(errorMsg);
-			res.status(StatusCodes.BAD_REQUEST).json({ game: null, error: 'A server error occurred' });
+			res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ game: null, error: 'A server error occurred' });
 			return;
 		}
 
@@ -222,3 +222,110 @@ async function manageGameSession(req: AuthenticatedRequest, res: Response, type:
 		res.status(StatusCodes.BAD_REQUEST).json({ game: null, error: error.message });
 	}
 }
+
+export const endGameSession = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+	try {
+		const { game_id } = req.body;
+		const user = req.user_id || '';
+
+		if (!game_id || !user) {
+			res.status(StatusCodes.BAD_REQUEST).json({ game: null, error: 'Session ID is required' });
+			return;
+		}
+
+		if (!supabase) {
+			const errorMsg = 'Failed to create Supabase admin client for UsersService. Check environment variables (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).';
+			logger.error(errorMsg);
+			res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ game: null, error: 'A server error occurred' });
+			return;
+		}
+
+		const { game, error } = await getGameByIdService(game_id);
+		if (error || !game) {
+			logger.error('Set User Number controller: error occured while fetching game by ID', error);
+			res.status(StatusCodes.BAD_REQUEST).json({ game: null, error: error?.message || 'Failed to fetch game by ID' });
+			return;
+		}
+
+		const { participants } = await getAllParticipantsService(game.id);
+
+		if (game.status == 'finished') {
+			res.status(StatusCodes.OK).json({ game, participants, error: null });
+			return;
+		}
+
+		const gameEnded = await hasGameHasEnded(game);
+
+		if (!gameEnded) {
+			res.status(StatusCodes.BAD_REQUEST).json({ game: null, error: 'The game has not ended yet' });
+			return;
+		}
+
+		const { game: updatedGame } = await getGameByIdService(game_id);
+		const { participants: updatedParticipants } = await getAllParticipantsService(game.id);
+
+		res.status(StatusCodes.OK).json({ game: updatedGame, error: null, participants: updatedParticipants });
+	} catch (error: any) {
+		logger.error(`END Game controller: unexpected error`, error);
+		res.status(StatusCodes.BAD_REQUEST).json({ game: null, error: error.message });
+	}
+};
+
+export const getGamesByDate = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+	try {
+		const { date } = req.params;
+		const user = req.user_id || '';
+		if (!date || !user) {
+			res.status(StatusCodes.BAD_REQUEST).json({ games: null, error: 'Date parameter is required' });
+			return;
+		}
+
+		const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+		if (!dateRegex.test(date)) {
+			res.status(StatusCodes.BAD_REQUEST).json({ games: null, error: 'Invalid date format. Use YYYY-MM-DD.' });
+			return;
+		}
+
+		if (!supabase) {
+			const errorMsg = 'Failed to create Supabase admin client for UsersService. Check environment variables (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).';
+			logger.error(errorMsg);
+			res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ games: null, error: 'A server error occurred' });
+			return;
+		}
+
+		const { data, error } = await supabase.from('game_sessions').select('*').gte('created_at', `${date}T00:00:00Z`).lte('created_at', `${date}T23:59:59Z`).order('created_at', { ascending: false });
+
+		if (error) {
+			logger.error(`Get Games by Date controller: error occured while fetching games by date`, error);
+			res.status(StatusCodes.BAD_REQUEST).json({ games: null, error: error.message || 'Failed to fetch games by date' });
+			return;
+		}
+
+		res.status(StatusCodes.OK).json({ games: data, error: null });
+	} catch (error: any) {
+		logger.error(`Get Games by Date controller: unexpected error`, error);
+		res.status(StatusCodes.BAD_REQUEST).json({ games: null, error: error.message });
+	}
+};
+
+export const getTopPlayers = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+	try {
+		if (!supabase) {
+			const errorMsg = 'Failed to create Supabase admin client for UsersService. Check environment variables (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).';
+			logger.error(errorMsg);
+			res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ players: null, error: 'A server error occurred' });
+			return;
+		}
+		const { data, error } = await supabase.from('users').select('id, username, total_wins, total_losses').order('total_wins', { ascending: false }).limit(10);
+
+		if (error) {
+			logger.error(`Get Top Players controller: error occured while fetching top players`, error);
+			res.status(StatusCodes.BAD_REQUEST).json({ players: null, error: error.message || 'Failed to fetch top players' });
+			return;
+		}
+		res.status(StatusCodes.OK).json({ players: data, error: null });
+	} catch (error: any) {
+		logger.error(`Get Top Players controller: unexpected error`, error);
+		res.status(StatusCodes.BAD_REQUEST).json({ players: null, error: error.message });
+	}
+};

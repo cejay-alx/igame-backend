@@ -1,7 +1,8 @@
 import logger from '@/config/logger';
 import { createAdminClient } from '@/config/supabase';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { ParticipantResponse, SessionParticipant, SessionParticipantResponse, SessionPaticipantPayload } from './session-participants.types';
+import { ParticipantResponse, ParticipantsResponse, SessionParticipant, SessionParticipantResponse, SessionPaticipantPayload } from './session-participants.types';
+import { getUserByUsername } from '../user';
 
 const supabase: SupabaseClient | null = createAdminClient();
 
@@ -73,5 +74,32 @@ export const updateParticipantService = async (participantId: string, updates: P
 	} catch (error: any) {
 		logger.error(`Unexpected error in updateParticipantService service`, error);
 		return { participant: null, error: { name: 'UnexpectedError', message: error.message || 'An unexpected error occurred' } };
+	}
+};
+
+export const getAllParticipantsService = async (session_id: string): Promise<ParticipantsResponse> => {
+	if (!supabase) {
+		const errorMsg = 'Failed to create Supabase admin client for UsersService. Check environment variables (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).';
+		logger.error(errorMsg);
+		return { error: { name: 'ClientInitializationError', message: 'Supabase admin client not initialized' }, participants: null };
+	}
+
+	try {
+		const { data, error } = await supabase.from('session_participants').select('*').eq('session_id', session_id);
+
+		if (error) {
+			logger.error('Error fetching participant by user ID:', error);
+			return { participants: null, error };
+		}
+
+		for (const participant of data || []) {
+			const { data: userData } = await supabase.from('users').select('total_losses, total_wins, username').eq('id', participant.user_id).maybeSingle();
+			userData && (participant.user = userData);
+		}
+
+		return { participants: data, error: null };
+	} catch (error: any) {
+		logger.error(`Unexpected error in getAllParticipantsService service`, error);
+		return { participants: null, error: { name: 'UnexpectedError', message: error.message || 'An unexpected error occurred' } };
 	}
 };

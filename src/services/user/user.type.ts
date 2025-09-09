@@ -12,3 +12,11 @@ export interface UserResponse {
 	user: UserData | null;
 	error: { name: string; message: string; status?: string } | null;
 }
+
+export interface UpdateUserPayload {
+	username?: string;
+	total_wins?: number;
+	total_losses?: number;
+	is_logged_in?: boolean;
+	session_ends_in?: string | null;
+}
