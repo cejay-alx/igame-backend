@@ -24,8 +24,6 @@ export const hasGameHasEnded = async (game: GameSession): Promise<boolean> => {
 
 		const { participants } = await getAllParticipantsService(game.id);
 
-		logger.info(`Participants: ${JSON.stringify(participants)}`);
-
 		if (participants) {
 			for (const participant of participants) {
 				const isWinner = participant.chosen_number === winningNumber;

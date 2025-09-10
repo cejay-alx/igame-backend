@@ -4,6 +4,7 @@ import { hasGameHasEnded } from '@/lib/helpers';
 import { AuthenticatedRequest } from '@/middleware';
 import { activeGamesService, getGameByIdService, newGameService, updateGameService } from '@/services/game-session';
 import { getAllParticipantsService, getParticipantByUserIdService, newParticipantService, updateParticipantService } from '@/services/session-participants';
+import { getUserById } from '@/services/user';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
@@ -56,7 +57,7 @@ export const createNewGames = async (req: AuthenticatedRequest, res: Response): 
 		}
 
 		if (oldGame) {
-			res.status(StatusCodes.BAD_REQUEST).json({ game: null, error: 'An active game session already exists. Please finish the current game before creating a new one.' });
+			res.status(StatusCodes.BAD_REQUEST).json({ game: oldGame, error: 'An active game session already exists. Please finish the current game before creating a new one.' });
 			return;
 		}
 
@@ -310,20 +311,155 @@ export const getGamesByDate = async (req: AuthenticatedRequest, res: Response): 
 
 export const getTopPlayers = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
 	try {
+		const { timeframe } = req.params;
+		logger.info(`Fetching top players for timeframe: ${timeframe}`);
+
+		if (timeframe && timeframe !== 'all-time' && timeframe !== 'monthly' && timeframe !== 'weekly' && timeframe !== 'today') {
+			res.status(StatusCodes.BAD_REQUEST).json({ players: null, error: 'Invalid timeframe. Use all-time, today, monthly, or weekly.' });
+			return;
+		}
+
 		if (!supabase) {
 			const errorMsg = 'Failed to create Supabase admin client for UsersService. Check environment variables (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).';
 			logger.error(errorMsg);
 			res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ players: null, error: 'A server error occurred' });
 			return;
 		}
-		const { data, error } = await supabase.from('users').select('id, username, total_wins, total_losses').order('total_wins', { ascending: false }).limit(10);
 
-		if (error) {
-			logger.error(`Get Top Players controller: error occured while fetching top players`, error);
-			res.status(StatusCodes.BAD_REQUEST).json({ players: null, error: error.message || 'Failed to fetch top players' });
+		if (timeframe == 'all-time' || !timeframe) {
+			const { data, error } = await supabase.from('users').select('id, username, total_wins').gt('total_wins', 0).order('total_wins', { ascending: false }).limit(10);
+
+			if (error) {
+				logger.error(`Get Top Players controller: error occured while fetching top players`, error);
+				res.status(StatusCodes.BAD_REQUEST).json({ players: null, error: error.message || 'Failed to fetch top players' });
+				return;
+			}
+			res.status(StatusCodes.OK).json({ players: data, error: null });
 			return;
 		}
-		res.status(StatusCodes.OK).json({ players: data, error: null });
+
+		if (timeframe == 'today') {
+			const { data, error } = await supabase
+				.from('session_participants')
+				.select('*')
+				.eq('is_winner', true)
+				.gte('joined_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
+				.lte('joined_at', new Date(new Date().setHours(23, 59, 59, 999)).toISOString())
+				.order('joined_at', { ascending: false })
+				.limit(10);
+
+			if (error) {
+				logger.error(`Get Top Players controller: error occured while fetching top players`, error);
+				res.status(StatusCodes.BAD_REQUEST).json({ players: null, error: error.message || 'Failed to fetch top players' });
+				return;
+			}
+
+			const winCounts = data.reduce((accumulator, currentPlayer) => {
+				if (currentPlayer.is_winner) {
+					const userId = currentPlayer.user_id;
+					accumulator[userId] = (accumulator[userId] || 0) + 1;
+				}
+				return accumulator;
+			}, {});
+
+			const sortedData = await Promise.all(
+				Object.keys(winCounts).map(async (userId) => {
+					const { user } = await getUserById(userId);
+					return {
+						id: userId,
+						username: user?.username || 'Unknown',
+						total_wins: winCounts[userId],
+					};
+				})
+			);
+
+			sortedData.sort((a, b) => b.total_wins - a.total_wins);
+
+			res.status(StatusCodes.OK).json({ players: sortedData.slice(0, 10), error: null });
+			return;
+		}
+
+		if (timeframe == 'weekly') {
+			const { data, error } = await supabase
+				.from('session_participants')
+				.select('*')
+				.eq('is_winner', true)
+				.gte('joined_at', new Date(new Date().setDate(new Date().getDate() - 7)).toISOString())
+				.lte('joined_at', new Date().toISOString())
+				.order('joined_at', { ascending: false })
+				.limit(10);
+			if (error) {
+				logger.error(`Get Top Players controller: error occured while fetching top players`, error);
+				res.status(StatusCodes.BAD_REQUEST).json({ players: null, error: error.message || 'Failed to fetch top players' });
+				return;
+			}
+
+			const winCounts = data.reduce((accumulator, currentPlayer) => {
+				if (currentPlayer.is_winner) {
+					const userId = currentPlayer.user_id;
+					accumulator[userId] = (accumulator[userId] || 0) + 1;
+				}
+				return accumulator;
+			}, {});
+
+			const sortedData = await Promise.all(
+				Object.keys(winCounts).map(async (userId) => {
+					const { user } = await getUserById(userId);
+					return {
+						id: userId,
+						username: user?.username || 'Unknown',
+						total_wins: winCounts[userId],
+					};
+				})
+			);
+
+			sortedData.sort((a, b) => b.total_wins - a.total_wins);
+
+			res.status(StatusCodes.OK).json({ players: sortedData.slice(0, 10), error: null });
+			return;
+		}
+
+		if (timeframe == 'monthly') {
+			const { data, error } = await supabase
+				.from('session_participants')
+				.select('*')
+				.eq('is_winner', true)
+				.gte('joined_at', new Date(new Date().setDate(new Date().getDate() - 30)).toISOString())
+				.lte('joined_at', new Date().toISOString())
+				.order('joined_at', { ascending: false })
+				.limit(10);
+			if (error) {
+				logger.error(`Get Top Players controller: error occured while fetching top players`, error);
+				res.status(StatusCodes.BAD_REQUEST).json({ players: null, error: error.message || 'Failed to fetch top players' });
+				return;
+			}
+
+			const winCounts = data.reduce((accumulator, currentPlayer) => {
+				if (currentPlayer.is_winner) {
+					const userId = currentPlayer.user_id;
+					accumulator[userId] = (accumulator[userId] || 0) + 1;
+				}
+				return accumulator;
+			}, {});
+
+			const sortedData = await Promise.all(
+				Object.keys(winCounts).map(async (userId) => {
+					const { user } = await getUserById(userId);
+					return {
+						id: userId,
+						username: user?.username || 'Unknown',
+						total_wins: winCounts[userId],
+					};
+				})
+			);
+
+			sortedData.sort((a, b) => b.total_wins - a.total_wins);
+
+			res.status(StatusCodes.OK).json({ players: sortedData.slice(0, 10), error: null });
+			return;
+		}
+
+		res.status(StatusCodes.BAD_REQUEST).json({ players: null, error: 'Failed to fetch top players' });
 	} catch (error: any) {
 		logger.error(`Get Top Players controller: unexpected error`, error);
 		res.status(StatusCodes.BAD_REQUEST).json({ players: null, error: error.message });

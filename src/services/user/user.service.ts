@@ -82,3 +82,30 @@ export const updateUserService = async (userId: string, updates: Partial<UpdateU
 		return { user: null, error: { name: 'UnexpectedError', message: error.message || 'An unexpected error occurred' } };
 	}
 };
+
+export const getUserById = async (id: string): Promise<UserResponse> => {
+	logger.info(`Fetching user by id: ${id}`);
+	if (!id) {
+		return { user: null, error: { name: 'Input Error', message: 'Id is required' } };
+	}
+
+	if (!supabase) {
+		const errorMsg = 'Failed to create Supabase admin client for UsersService. Check environment variables (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).';
+		logger.error(errorMsg);
+		return { user: null, error: { name: 'ClientInitializationError', message: 'Supabase admin client not initialized' } };
+	}
+
+	try {
+		const { data, error } = await supabase.from('users').select('*').eq('id', id).maybeSingle();
+
+		if (error) {
+			logger.error(`Error fetching user by id ${id}:`, error);
+			return { user: null, error };
+		}
+
+		return { user: data, error: null };
+	} catch (err: any) {
+		logger.error(`Unexpected error in getUserById service for user ${id}:`, err);
+		return { user: null, error: { name: 'UnexpectedError', message: err.message || 'An unexpected error occurred' } };
+	}
+};

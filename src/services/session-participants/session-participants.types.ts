@@ -1,5 +1,3 @@
-import { UserData } from '../user';
-
 export interface SessionParticipant {
 	id: string;
 	session_id: string;

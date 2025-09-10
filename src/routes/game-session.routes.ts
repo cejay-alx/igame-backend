@@ -25,10 +25,10 @@ router.post('/leave-game', authorize, validateRequestBody(manageGame), leaveGame
 // POST /api/v1/games/end-game - End Game Session
 router.post('/end-game', authorize, validateRequestBody(manageGame), endGameSession);
 
-// GET /api/v1/games/top-players - Get Top Players
-router.get('/top-players', authorize, getTopPlayers);
+// GET /api/v1/games/leaderboard/:timeframe - Get Top Players
+router.get('/leaderboard/:timeframe', getTopPlayers);
 
 // GET /api/v1/games/:date - Get Game History by Date
-router.get('/:date', authorize, getGamesByDate);
+router.get('/:date', getGamesByDate);
 
 export default router;
