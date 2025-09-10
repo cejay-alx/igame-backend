@@ -25,7 +25,7 @@ Below are the environment variables used by the project and a short description 
 -   `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key (used server-side for privileged operations).
 -   `ACCESS_TOKEN_SECRET` — secret used to sign/verify JWT access tokens (required).
 -   `MAX_AGE` — token expiration (as a number). The code expects a numeric value (e.g., `3600000` for 1 hour in milliseconds).
--   `GAME_DURATION` — default session duration used by the game session service (default: `100`). This project uses the numeric value from `process.env`; assume seconds unless you prefer milliseconds (confirm and keep consistent with client).
+-   `GAME_DURATION` — default session duration used by the game session service (default: `20`). This project uses the numeric value from `process.env`; assume seconds unless you prefer milliseconds (confirm and keep consistent with client).
 -   `MAX_USERS_PER_SESSION` — maximum players per game session (default: `10`).
 -   `SHOW_LOGS` — if `true`, shows additional important log output in the console.
 -   `LOG_LEVEL` — logger level (default: `info`).
@@ -41,7 +41,7 @@ SUPABASE_ANON_KEY=anon_key_here
 SUPABASE_SERVICE_ROLE_KEY=service_role_key_here
 ACCESS_TOKEN_SECRET=supersecretkey
 MAX_AGE=3600000
-GAME_DURATION=100
+GAME_DURATION=20
 MAX_USERS_PER_SESSION=10
 SHOW_LOGS=true
 LOG_LEVEL=info
@@ -49,7 +49,7 @@ LOG_LEVEL=info
 
 Notes and assumptions
 
--   `GAME_DURATION` default in code is `100`. I inferred this is measured in seconds; adjust to milliseconds if you use millisecond-based timers elsewhere.
+-   `GAME_DURATION` default in code is `20` measured in seconds;
 -   Keep secrets (like `SUPABASE_SERVICE_ROLE_KEY` and `ACCESS_TOKEN_SECRET`) out of version control and use a secrets manager in production.
 
 ## Quick start
