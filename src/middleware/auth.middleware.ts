@@ -10,7 +10,7 @@ export interface AuthenticatedRequest extends Request {
 }
 
 export const authorize = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
-	const accessToken = req.cookies && req.cookies['igame_access_token'];
+	const accessToken = req.cookies && req.cookies['igame_access_token_live'];
 
 	if (!accessToken) {
 		res.status(StatusCodes.UNAUTHORIZED).json({ status: 'error', message: 'Not authorized, Invalid token in cookie' });

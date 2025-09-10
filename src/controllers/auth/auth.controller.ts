@@ -40,7 +40,7 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
 
 		logger.info(`Setting accessToken cookie for user: ${credentials.username}`);
 
-		res.cookie('igame_access_token', loginData?.accessToken, {
+		res.cookie('igame_access_token_live', loginData?.accessToken, {
 			httpOnly: true,
 			secure: true,
 			sameSite: 'lax',
@@ -73,7 +73,7 @@ export const handleLogout = async (req: AuthenticatedRequest, res: Response): Pr
 		return;
 	}
 
-	res.clearCookie('igame_access_token', {
+	res.clearCookie('igame_access_token_live', {
 		httpOnly: true,
 		secure: true,
 		sameSite: 'lax',
