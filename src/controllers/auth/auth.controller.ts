@@ -68,6 +68,7 @@ export const handleLogout = async (req: AuthenticatedRequest, res: Response): Pr
 	const { error } = await logoutUser(username);
 
 	if (error) {
+		logger.debug(`Logout error for user ${username}:`, error);
 		res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Logout failed' });
 		return;
 	}
@@ -79,6 +80,7 @@ export const handleLogout = async (req: AuthenticatedRequest, res: Response): Pr
 		path: '/',
 	});
 
+	logger.info(`User ${username} logged out successfully`);
 	res.status(StatusCodes.OK).json({ message: `Logged out successfully` });
 };
 
